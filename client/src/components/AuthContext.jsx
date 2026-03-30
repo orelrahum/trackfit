@@ -57,14 +57,6 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   };
 
-  const loginWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin }
-    });
-    if (error) throw error;
-  };
-
   const markProfileCompleted = () => {
     setUser(prev => prev ? { ...prev, profile_completed: true } : prev);
   };
@@ -78,7 +70,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, session, loading,
-      loginWithEmail, registerWithEmail, loginWithGoogle,
+      loginWithEmail, registerWithEmail,
       logout, markProfileCompleted
     }}>
       {children}
