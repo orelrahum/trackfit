@@ -52,6 +52,7 @@ const SYSTEM_PROMPT = `אתה עוזר תזונה חכם עבור אפליקצי
 המשתמש יתאר מה הוא אכל (בטקסט, תמונה, או הקלטה קולית).
 
 המשימה שלך: לזהות את המוצרים שהמשתמש אכל ולהתאים אותם **אך ורק** למוצרים מרשימת המוצרים שלנו.
+הרשימה כוללת מוצרי מזון (F) ומתכונים (R).
 
 חוקים חשובים:
 1. החזר רק מוצרים שקיימים ברשימה שלנו. אם אין התאמה מדויקת, בחר את המוצר הכי קרוב מהרשימה.
@@ -59,12 +60,13 @@ const SYSTEM_PROMPT = `אתה עוזר תזונה חכם עבור אפליקצי
 3. הערך את הכמות בגרמים על סמך התיאור של המשתמש.
 4. אם המשתמש מציין מנה (כפית, כף, כוס, יחידה, פרוסה וכו'), המר אותה לגרמים.
 5. השתמש במידע של serving_sizes מהרשימה כשהוא זמין.
+6. ה-product_id כולל תחילית: F למוצר מזון, R למתכון. לדוגמה: "F123" או "R456".
 
 החזר תשובה בפורמט JSON בלבד (ללא markdown, ללא backticks):
 {
   "items": [
     {
-      "product_id": 123,
+      "product_id": "F123",
       "product_name": "שם המוצר מהרשימה",
       "brand": "שם המותג",
       "amount_g": 30,
@@ -137,14 +139,23 @@ export async function analyzeFood(text = null, imageBase64 = null, audioBase64 =
   
   // Enrich items with full nutritional data from our database
   const enrichedItems = await Promise.all((parsed.items || []).map(async item => {
-    const product = item.product_id ? await getProductById(item.product_id) : null;
+    let product = null;
+    const rawId = String(item.product_id || '');
+    if (rawId.startsWith('F') || rawId.startsWith('R')) {
+      const type = rawId[0] === 'R' ? 'recipe' : 'food';
+      const numId = parseInt(rawId.slice(1));
+      if (!isNaN(numId)) product = await getProductById(numId, type);
+    } else if (item.product_id) {
+      product = await getProductById(item.product_id, 'food');
+    }
     const amountG = item.amount_g || 0;
     
     if (product) {
       const nutrients = product.nutrients_per_100g;
       const factor = amountG / 100;
       return {
-        product_id: product.id,
+        food_id: product.type === 'food' ? product.id : null,
+        recipe_id: product.type === 'recipe' ? product.id : null,
         product_name: product.name,
         brand: product.brand || '',
         amount_g: amountG,
@@ -159,7 +170,8 @@ export async function analyzeFood(text = null, imageBase64 = null, audioBase64 =
     }
     
     return {
-      product_id: null,
+      food_id: null,
+      recipe_id: null,
       product_name: item.product_name || 'מוצר לא מזוהה',
       brand: item.brand || '',
       amount_g: amountG,

@@ -23,27 +23,30 @@ router.get('/catalog', (req, res) => {
   const pageNum = parseInt(page);
   const pageSize = parseInt(limit);
   
-  let products = getAllProducts();
+  let items = [];
+  const types = type ? type.split(',') : null;
+  const sources = source ? source.split(',') : null;
 
-  if (source) {
-    const sources = source.split(',');
-    products = products.filter(p => sources.includes(p.source));
+  if (!types || types.includes('food')) {
+    let foods = getAllProducts().filter(p => p.type === 'food');
+    if (sources) foods = foods.filter(p => sources.includes(p.source));
+    items = items.concat(foods);
   }
-  
-  if (type) {
-    const types = type.split(',');
-    products = products.filter(p => types.includes(p.type));
+  if (!types || types.includes('recipe')) {
+    let recipes = getAllProducts().filter(p => p.type === 'recipe');
+    if (sources) recipes = recipes.filter(p => sources.includes(p.source));
+    items = items.concat(recipes);
   }
   
   if (q) {
     const query = q.toLowerCase();
-    products = products.filter(p => {
+    items = items.filter(p => {
       const searchable = `${p.name} ${p.brand || ''}`.toLowerCase();
       return searchable.includes(query);
     });
   }
   
-  const sorted = [...products].sort((a, b) => a.name.localeCompare(b.name, 'he'));
+  const sorted = [...items].sort((a, b) => a.name.localeCompare(b.name, 'he'));
   
   const start = pageNum * pageSize;
   const paged = sorted.slice(start, start + pageSize);
