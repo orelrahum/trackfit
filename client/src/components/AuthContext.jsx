@@ -1,68 +1,86 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
 import { getMe } from '../api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('trackfit_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const checkAuth = useCallback(async () => {
-    const token = localStorage.getItem('trackfit_token');
-    if (!token) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
+  const fetchProfile = useCallback(async () => {
     try {
       const { user: userData } = await getMe();
       setUser(userData);
-      localStorage.setItem('trackfit_user', JSON.stringify(userData));
     } catch {
-      localStorage.removeItem('trackfit_token');
-      localStorage.removeItem('trackfit_user');
       setUser(null);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    checkAuth();
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+      if (s) {
+        fetchProfile().finally(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
+    });
 
-    const handleExpired = () => {
-      setUser(null);
-    };
-    window.addEventListener('auth-expired', handleExpired);
-    return () => window.removeEventListener('auth-expired', handleExpired);
-  }, [checkAuth]);
+    // Listen for auth changes (login, logout, token refresh, OAuth redirect)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      if (s) {
+        fetchProfile().finally(() => setLoading(false));
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
 
-  const loginSuccess = (token, userData) => {
-    localStorage.setItem('trackfit_token', token);
-    localStorage.setItem('trackfit_user', JSON.stringify(userData));
-    setUser(userData);
+    return () => subscription.unsubscribe();
+  }, [fetchProfile]);
+
+  const loginWithEmail = async (email, password) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  };
+
+  const registerWithEmail = async (email, password, name) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: name } }
+    });
+    if (error) throw error;
+  };
+
+  const loginWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
+    });
+    if (error) throw error;
   };
 
   const markProfileCompleted = () => {
-    setUser(prev => {
-      const updated = { ...prev, profile_completed: true };
-      localStorage.setItem('trackfit_user', JSON.stringify(updated));
-      return updated;
-    });
+    setUser(prev => prev ? { ...prev, profile_completed: true } : prev);
   };
 
-  const logout = () => {
-    localStorage.removeItem('trackfit_token');
-    localStorage.removeItem('trackfit_user');
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
+    setSession(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginSuccess, logout, markProfileCompleted }}>
+    <AuthContext.Provider value={{
+      user, session, loading,
+      loginWithEmail, registerWithEmail, loginWithGoogle,
+      logout, markProfileCompleted
+    }}>
       {children}
     </AuthContext.Provider>
   );

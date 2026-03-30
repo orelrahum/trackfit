@@ -1,30 +1,31 @@
 import { Router } from 'express';
-import db from '../db/database.js';
+import supabase from '../db/supabase.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
-// All profile routes require authentication
 router.use(authMiddleware);
 
 // Get user profile
-router.get('/', (req, res) => {
-  const profile = db.prepare(`
-    SELECT u.id, u.email, u.name, u.created_at,
-      p.height_cm, p.weight_kg, p.birth_date, p.gender,
-      p.activity_level, p.goal,
-      p.daily_calories_target, p.daily_protein_target,
-      p.daily_carbs_target, p.daily_fat_target
-    FROM users u
-    LEFT JOIN user_profiles p ON p.user_id = u.id
-    WHERE u.id = ?
-  `).get(req.user.id);
+router.get('/', async (req, res) => {
+  const { data: profile, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('user_id', req.user.id)
+    .single();
 
-  res.json(profile);
+  if (error) return res.status(500).json({ error: error.message });
+
+  res.json({
+    id: req.user.id,
+    email: req.user.email,
+    name: profile?.name || req.user.name,
+    ...profile
+  });
 });
 
 // Update user profile
-router.put('/', (req, res) => {
+router.put('/', async (req, res) => {
   const {
     name, height_cm, weight_kg, birth_date, gender,
     activity_level, goal,
@@ -32,90 +33,64 @@ router.put('/', (req, res) => {
     daily_carbs_target, daily_fat_target
   } = req.body;
 
-  const transaction = db.transaction(() => {
-    // Update user name if provided
-    if (name) {
-      db.prepare('UPDATE users SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-        .run(name, req.user.id);
-    }
+  const updates = {};
+  if (name !== undefined) updates.name = name;
+  if (height_cm !== undefined) updates.height_cm = height_cm;
+  if (weight_kg !== undefined) updates.weight_kg = weight_kg;
+  if (birth_date !== undefined) updates.birth_date = birth_date;
+  if (gender !== undefined) updates.gender = gender;
+  if (activity_level !== undefined) updates.activity_level = activity_level;
+  if (goal !== undefined) updates.goal = goal;
+  if (daily_calories_target !== undefined) updates.daily_calories_target = daily_calories_target;
+  if (daily_protein_target !== undefined) updates.daily_protein_target = daily_protein_target;
+  if (daily_carbs_target !== undefined) updates.daily_carbs_target = daily_carbs_target;
+  if (daily_fat_target !== undefined) updates.daily_fat_target = daily_fat_target;
+  updates.updated_at = new Date().toISOString();
 
-    // Update profile
-    db.prepare(`
-      INSERT INTO user_profiles (user_id, height_cm, weight_kg, birth_date, gender, activity_level, goal,
-        daily_calories_target, daily_protein_target, daily_carbs_target, daily_fat_target, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(user_id) DO UPDATE SET
-        height_cm = COALESCE(?, height_cm),
-        weight_kg = COALESCE(?, weight_kg),
-        birth_date = COALESCE(?, birth_date),
-        gender = COALESCE(?, gender),
-        activity_level = COALESCE(?, activity_level),
-        goal = COALESCE(?, goal),
-        daily_calories_target = COALESCE(?, daily_calories_target),
-        daily_protein_target = COALESCE(?, daily_protein_target),
-        daily_carbs_target = COALESCE(?, daily_carbs_target),
-        daily_fat_target = COALESCE(?, daily_fat_target),
-        updated_at = CURRENT_TIMESTAMP
-    `).run(
-      req.user.id,
-      height_cm, weight_kg, birth_date, gender, activity_level, goal,
-      daily_calories_target, daily_protein_target, daily_carbs_target, daily_fat_target,
-      height_cm, weight_kg, birth_date, gender, activity_level, goal,
-      daily_calories_target, daily_protein_target, daily_carbs_target, daily_fat_target
-    );
-  });
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .upsert({ user_id: req.user.id, ...updates }, { onConflict: 'user_id' })
+    .select()
+    .single();
 
-  try {
-    transaction();
-    // Return updated profile
-    const profile = db.prepare(`
-      SELECT u.id, u.email, u.name, u.created_at,
-        p.height_cm, p.weight_kg, p.birth_date, p.gender,
-        p.activity_level, p.goal,
-        p.daily_calories_target, p.daily_protein_target,
-        p.daily_carbs_target, p.daily_fat_target
-      FROM users u
-      LEFT JOIN user_profiles p ON p.user_id = u.id
-      WHERE u.id = ?
-    `).get(req.user.id);
-    res.json(profile);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+  if (error) return res.status(500).json({ error: error.message });
+
+  res.json({ id: req.user.id, email: req.user.email, ...data });
 });
 
 // Log weight
-router.post('/weight', (req, res) => {
+router.post('/weight', async (req, res) => {
   const { date, weight_kg, note } = req.body;
   const logDate = date || new Date().toISOString().split('T')[0];
 
-  try {
-    db.prepare(`
-      INSERT INTO weight_log (user_id, date, weight_kg, note)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(user_id, date) DO UPDATE SET
-        weight_kg = ?, note = ?
-    `).run(req.user.id, logDate, weight_kg, note || null, weight_kg, note || null);
+  const { error } = await supabase
+    .from('weight_log')
+    .upsert(
+      { user_id: req.user.id, date: logDate, weight_kg, note: note || null },
+      { onConflict: 'user_id,date' }
+    );
 
-    res.json({ message: 'נשמר בהצלחה' });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'נשמר בהצלחה' });
 });
 
 // Get weight history
-router.get('/weight', (req, res) => {
+router.get('/weight', async (req, res) => {
   const { from, to, limit } = req.query;
-  let query = 'SELECT * FROM weight_log WHERE user_id = ?';
-  const params = [req.user.id];
 
-  if (from) { query += ' AND date >= ?'; params.push(from); }
-  if (to) { query += ' AND date <= ?'; params.push(to); }
-  query += ' ORDER BY date DESC';
-  if (limit) { query += ' LIMIT ?'; params.push(parseInt(limit)); }
+  let query = supabase
+    .from('weight_log')
+    .select('*')
+    .eq('user_id', req.user.id)
+    .order('date', { ascending: false });
 
-  const logs = db.prepare(query).all(...params);
-  res.json(logs);
+  if (from) query = query.gte('date', from);
+  if (to) query = query.lte('date', to);
+  if (limit) query = query.limit(parseInt(limit));
+
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 
 export default router;

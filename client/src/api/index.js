@@ -1,23 +1,20 @@
+import { supabase } from '../lib/supabase';
+
 const API_BASE = '/api';
 
-function getToken() {
-  return localStorage.getItem('trackfit_token');
-}
-
-function authHeaders() {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+async function authHeaders() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session ? { Authorization: `Bearer ${session.access_token}` } : {};
 }
 
 async function request(url, options = {}) {
+  const auth = await authHeaders();
   const res = await fetch(`${API_BASE}${url}`, {
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options.headers },
+    headers: { 'Content-Type': 'application/json', ...auth, ...options.headers },
     ...options,
   });
   if (res.status === 401) {
-    localStorage.removeItem('trackfit_token');
-    localStorage.removeItem('trackfit_user');
-    window.dispatchEvent(new Event('auth-expired'));
+    await supabase.auth.signOut();
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -27,12 +24,6 @@ async function request(url, options = {}) {
 }
 
 // Auth
-export const register = (email, password, name) =>
-  request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password, name }) });
-
-export const login = (email, password) =>
-  request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-
 export const getMe = () => request('/auth/me');
 
 // Profile
@@ -54,9 +45,10 @@ export async function analyzeFood(text, file) {
   if (text) formData.append('text', text);
   if (file) formData.append('file', file);
   
+  const auth = await authHeaders();
   const res = await fetch(`${API_BASE}/analyze`, {
     method: 'POST',
-    headers: authHeaders(),
+    headers: auth,
     body: formData,
   });
   if (!res.ok) {

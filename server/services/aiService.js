@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import db from '../db/database.js';
+import supabase from '../db/supabase.js';
 import { getAllProducts, getProductById } from './productService.js';
 
 let genAI = null;
@@ -15,15 +15,18 @@ export function isAIReady() {
   return model !== null;
 }
 
-function getApiKey() {
-  // Check runtime setting first, then env
-  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('gemini_api_key');
+async function getApiKey() {
+  const { data: row } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('key', 'gemini_api_key')
+    .single();
   return row?.value || process.env.GEMINI_API_KEY;
 }
 
-export function ensureAI() {
+export async function ensureAI() {
   if (!model) {
-    const key = getApiKey();
+    const key = await getApiKey();
     if (key && key !== 'your_gemini_api_key_here') {
       initializeAI(key);
     } else {
@@ -133,8 +136,8 @@ export async function analyzeFood(text = null, imageBase64 = null, audioBase64 =
   }
   
   // Enrich items with full nutritional data from our database
-  const enrichedItems = (parsed.items || []).map(item => {
-    const product = item.product_id ? getProductById(item.product_id) : null;
+  const enrichedItems = await Promise.all((parsed.items || []).map(async item => {
+    const product = item.product_id ? await getProductById(item.product_id) : null;
     const amountG = item.amount_g || 0;
     
     if (product) {
@@ -168,7 +171,7 @@ export async function analyzeFood(text = null, imageBase64 = null, audioBase64 =
       photo_url: null,
       confidence: item.confidence || 0.3
     };
-  });
+  }));
   
   return {
     items: enrichedItems,

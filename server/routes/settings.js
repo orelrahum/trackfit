@@ -1,14 +1,18 @@
 import { Router } from 'express';
-import db from '../db/database.js';
+import supabase from '../db/supabase.js';
 import { initializeAI } from '../services/aiService.js';
 
 const router = Router();
 
 // Get a setting
-router.get('/:key', (req, res) => {
-  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(req.params.key);
+router.get('/:key', async (req, res) => {
+  const { data: row } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('key', req.params.key)
+    .single();
+
   if (row) {
-    // Mask API key for security
     if (req.params.key === 'gemini_api_key') {
       const val = row.value;
       res.json({ value: val.slice(0, 6) + '...' + val.slice(-4), configured: true });
@@ -21,11 +25,12 @@ router.get('/:key', (req, res) => {
 });
 
 // Set a setting
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { key, value } = req.body;
-  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
-  
-  // If API key was set, reinitialize AI
+  await supabase
+    .from('settings')
+    .upsert({ key, value }, { onConflict: 'key' });
+
   if (key === 'gemini_api_key') {
     try {
       initializeAI(value);

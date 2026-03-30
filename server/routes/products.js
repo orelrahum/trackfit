@@ -5,16 +5,16 @@ import { authMiddleware } from '../middleware/auth.js';
 const router = Router();
 
 // Search products (public)
-router.get('/search', (req, res) => {
+router.get('/search', async (req, res) => {
   const { q, limit } = req.query;
   if (!q) return res.json([]);
-  const results = searchProducts(q, parseInt(limit) || 20);
+  const results = await searchProducts(q, parseInt(limit) || 20);
   res.json(results);
 });
 
 // Get all categories (public)
-router.get('/categories', (req, res) => {
-  res.json(getAllCategories());
+router.get('/categories', async (req, res) => {
+  res.json(await getAllCategories());
 });
 
 // Catalog: paginated, sorted א-ת, with optional search
@@ -25,7 +25,6 @@ router.get('/catalog', (req, res) => {
   
   let products = getAllProducts();
 
-  // Support comma-separated multi-values: source=fuder,foodDictionary
   if (source) {
     const sources = source.split(',');
     products = products.filter(p => sources.includes(p.source));
@@ -58,9 +57,9 @@ router.get('/catalog', (req, res) => {
 });
 
 // Add custom product (requires auth)
-router.post('/', authMiddleware, (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
-    const product = addCustomProduct(req.user.id, req.body);
+    const product = await addCustomProduct(req.user.id, req.body);
     res.json(product);
   } catch (e) {
     res.status(500).json({ error: e.message });
