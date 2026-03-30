@@ -13,11 +13,21 @@ export async function authMiddleware(req, res, next) {
     return res.status(401).json({ error: 'טוקן לא תקין או פג תוקף' });
   }
 
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from('user_profiles')
     .select('*')
     .eq('user_id', user.id)
     .single();
+
+  // Auto-create profile on first login (no trigger needed)
+  if (!profile) {
+    const { data: newProfile } = await supabase
+      .from('user_profiles')
+      .insert({ user_id: user.id, name: user.user_metadata?.full_name || '' })
+      .select()
+      .single();
+    profile = newProfile;
+  }
 
   req.user = {
     id: user.id,
