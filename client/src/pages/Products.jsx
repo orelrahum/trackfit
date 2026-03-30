@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Package, ChefHat, ShoppingBasket, X, ExternalLink } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
-const API_BASE = '/api';
 const FUDER_PLACEHOLDER = 'https://www.fuder.co.il/wp-content/uploads/2023/10/Frame-1000000952.png';
 
 function hasRealImage(product) {
@@ -164,22 +164,47 @@ export default function Products() {
 
   const loadProducts = useCallback(async (pageNum, query, filterParams) => {
     try {
-      const params = new URLSearchParams({
-        page: pageNum,
-        limit: PAGE_SIZE,
-        ...(query && { q: query }),
-        ...filterParams,
-      });
-      const res = await fetch(`${API_BASE}/products/catalog?${params}`);
-      const data = await res.json();
-      
-      if (pageNum === 0) {
-        setProducts(data.products);
-      } else {
-        setProducts(prev => [...prev, ...data.products]);
+      const types = filterParams.type ? filterParams.type.split(',') : ['food', 'recipe'];
+      const sources = filterParams.source ? filterParams.source.split(',') : null;
+      let allItems = [];
+
+      if (types.includes('food')) {
+        let q = supabase.from('foods').select('*, food_servings(name, amount_g)', { count: 'exact' });
+        if (sources) q = q.in('source', sources);
+        if (query) q = q.or(`name.ilike.%${query}%,brand.ilike.%${query}%`);
+        q = q.order('name').range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+        const { data, count } = await q;
+        allItems = allItems.concat((data || []).map(f => ({
+          ...f, type: 'food',
+          serving_sizes: f.food_servings || [],
+          nutrients_per_100g: { calories: f.calories_per_100g, protein_g: f.protein_per_100g, carbs_g: f.carbs_per_100g, fat_g: f.fat_per_100g }
+        })));
+        if (!types.includes('recipe')) setTotalCount(count || 0);
       }
-      setTotalCount(data.total);
-      setHasMore(data.products.length === PAGE_SIZE);
+
+      if (types.includes('recipe')) {
+        let q = supabase.from('recipes').select('*', { count: 'exact' });
+        if (sources) q = q.in('source', sources);
+        if (query) q = q.or(`name.ilike.%${query}%,author.ilike.%${query}%`);
+        q = q.order('name').range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+        const { data, count } = await q;
+        allItems = allItems.concat((data || []).map(r => ({
+          ...r, type: 'recipe', brand: r.author,
+          serving_sizes: [{ name: 'מנה', amount_g: r.serving_weight_g || 300 }],
+          nutrients_per_100g: { calories: r.calories_per_100g, protein_g: r.protein_per_100g, carbs_g: r.carbs_per_100g, fat_g: r.fat_per_100g }
+        })));
+        if (!types.includes('food')) setTotalCount(count || 0);
+        if (types.includes('food')) setTotalCount(prev => pageNum === 0 ? (prev + (count || 0)) : prev);
+      }
+
+      allItems.sort((a, b) => a.name.localeCompare(b.name, 'he'));
+
+      if (pageNum === 0) {
+        setProducts(allItems);
+      } else {
+        setProducts(prev => [...prev, ...allItems]);
+      }
+      setHasMore(allItems.length >= PAGE_SIZE);
       setLoading(false);
     } catch (err) {
       console.error(err);
