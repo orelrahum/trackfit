@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { getMe } from '../api';
 
 const AuthContext = createContext(null);
 
@@ -9,31 +8,53 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async () => {
+  const fetchProfile = useCallback(async (authUser) => {
     try {
-      const { user: userData } = await getMe();
-      setUser(userData);
+      let { data: profile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', authUser.id)
+        .single();
+
+      if (!profile) {
+        const { data: newProfile } = await supabase
+          .from('user_profiles')
+          .insert({ user_id: authUser.id, name: authUser.user_metadata?.full_name || '' })
+          .select()
+          .single();
+        profile = newProfile;
+      }
+
+      setUser({
+        id: authUser.id,
+        email: authUser.email,
+        name: profile?.name || authUser.user_metadata?.full_name || '',
+        profile_completed: !!(profile?.height_cm && profile?.weight_kg && profile?.gender && profile?.birth_date)
+      });
     } catch {
-      setUser(null);
+      setUser({
+        id: authUser.id,
+        email: authUser.email,
+        name: authUser.user_metadata?.full_name || '',
+        profile_completed: false
+      });
     }
   }, []);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
-      if (s) {
-        fetchProfile().finally(() => setLoading(false));
+      if (s?.user) {
+        fetchProfile(s.user).finally(() => setLoading(false));
       } else {
         setLoading(false);
       }
     });
 
-    // Listen for auth changes (login, logout, token refresh, OAuth redirect)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
-      if (s) {
-        fetchProfile().finally(() => setLoading(false));
+      if (s?.user) {
+        fetchProfile(s.user).finally(() => setLoading(false));
       } else {
         setUser(null);
         setLoading(false);

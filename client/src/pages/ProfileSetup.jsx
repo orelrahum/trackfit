@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { User, Activity, Target, ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Minus } from 'lucide-react';
-import { updateProfile } from '../api';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
 
 const ACTIVITY_LABELS = {
@@ -81,7 +81,11 @@ export default function ProfileSetup() {
     setSaving(true);
     setError(null);
     try {
-      await updateProfile(form);
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const { error: dbError } = await supabase
+        .from('user_profiles')
+        .upsert({ user_id: authUser.id, ...form, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+      if (dbError) throw dbError;
       markProfileCompleted();
     } catch (err) {
       setError(err.message);
