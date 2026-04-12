@@ -217,3 +217,119 @@ export const searchProducts = async (q) => {
 
   return [...(foods || []).map(mapFood), ...(recipes || []).map(mapRecipe)].slice(0, 20);
 };
+
+// AI Food Analysis
+let cachedApiKey = null;
+
+async function getGeminiKey() {
+  if (cachedApiKey) return cachedApiKey;
+  const { data } = await supabase.from('settings').select('value').eq('key', 'gemini_api_key').single();
+  cachedApiKey = data?.value || null;
+  return cachedApiKey;
+}
+
+async function buildProductCatalog() {
+  const [{ data: foods }, { data: recipes }] = await Promise.all([
+    supabase.from('foods')
+      .select('id, name, brand, food_servings(name, amount_g)')
+      .limit(500),
+    supabase.from('recipes')
+      .select('id, name, author, serving_weight_g')
+      .limit(200),
+  ]);
+
+  const lines = [];
+  for (const f of (foods || [])) {
+    const servings = (f.food_servings || []).map(s => `${s.name}=${s.amount_g}g`).join(', ');
+    lines.push(`[F${f.id}] ${f.name}${f.brand ? ` (${f.brand})` : ''}${servings ? ` | מנות: ${servings}` : ''}`);
+  }
+  for (const r of (recipes || [])) {
+    lines.push(`[R${r.id}] ${r.name}${r.author ? ` (${r.author})` : ''} | מנות: מנה=${r.serving_weight_g || 300}g`);
+  }
+  return lines.join('\n');
+}
+
+const AI_PROMPT = `אתה עוזר תזונה עבור אפליקציית Trackfit.
+המשתמש יתאר מה אכל בטקסט חופשי. זהה את המוצרים והתאם אותם לרשימת המוצרים שלנו.
+
+חוקים:
+1. התאם רק למוצרים מהרשימה. אם אין התאמה מדויקת, בחר את הקרוב ביותר.
+2. אם אין התאמה כלל, השתמש ב-product_id: null.
+3. הערך כמות בגרמים לפי התיאור (כפית=5g, כף=15g, כוס=240g, פרוסה=25g, יחידה=לפי מוצר).
+4. ה-product_id כולל תחילית: F למזון, R למתכון.
+
+החזר JSON בלבד (ללא markdown):
+{
+  "items": [
+    { "product_id": "F123", "product_name": "שם", "brand": "", "amount_g": 30, "serving_description": "2 כפות" }
+  ]
+}`;
+
+export const analyzeWithAI = async (text) => {
+  const { GoogleGenerativeAI } = await import('@google/generative-ai');
+
+  const apiKey = await getGeminiKey();
+  if (!apiKey) throw new Error('מפתח AI לא מוגדר. פנה למנהל המערכת.');
+
+  const catalog = await buildProductCatalog();
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+  const result = await model.generateContent([
+    { text: `${AI_PROMPT}\n\nרשימת המוצרים:\n${catalog}\n\n---\nהמשתמש אמר: ${text}` }
+  ]);
+
+  const responseText = result.response.text();
+  const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('AI לא הצליח לזהות מוצרים. נסה שוב.');
+  const parsed = JSON.parse(jsonMatch[0]);
+
+  // Enrich with nutritional data
+  const enriched = await Promise.all((parsed.items || []).map(async (item) => {
+    const rawId = String(item.product_id || '');
+    let food = null;
+
+    if (rawId.startsWith('F')) {
+      const id = parseInt(rawId.slice(1));
+      if (!isNaN(id)) {
+        const { data } = await supabase.from('foods').select('*').eq('id', id).single();
+        if (data) food = { ...data, type: 'food' };
+      }
+    } else if (rawId.startsWith('R')) {
+      const id = parseInt(rawId.slice(1));
+      if (!isNaN(id)) {
+        const { data } = await supabase.from('recipes').select('*').eq('id', id).single();
+        if (data) food = { ...data, type: 'recipe', brand: data.author };
+      }
+    }
+
+    const g = item.amount_g || 100;
+    if (food) {
+      const factor = g / 100;
+      return {
+        food_id: food.type === 'food' ? food.id : null,
+        recipe_id: food.type === 'recipe' ? food.id : null,
+        product_name: food.name,
+        brand: food.brand || '',
+        amount_g: g,
+        serving_description: item.serving_description || '',
+        calories: Math.round((food.calories_per_100g || 0) * factor),
+        protein_g: +((food.protein_per_100g || 0) * factor).toFixed(1),
+        carbs_g: +((food.carbs_per_100g || 0) * factor).toFixed(1),
+        fat_g: +((food.fat_per_100g || 0) * factor).toFixed(1),
+        photo_url: food.photo_url || null,
+      };
+    }
+
+    return {
+      food_id: null, recipe_id: null,
+      product_name: item.product_name || 'מוצר לא מזוהה',
+      brand: item.brand || '', amount_g: g,
+      serving_description: item.serving_description || '',
+      calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, photo_url: null,
+    };
+  }));
+
+  return enriched;
+};

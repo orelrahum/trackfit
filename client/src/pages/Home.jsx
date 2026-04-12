@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
-import { ChevronRight, ChevronLeft, Plus, Trash2, Pencil, Check, X } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Plus, Trash2, Pencil, Check, X, Search, Sparkles } from 'lucide-react';
 import FoodInput from '../components/FoodInput';
+import AIFoodInput from '../components/AIFoodInput';
 import DailySummary from '../components/DailySummary';
 import { getMeals, getMealSummary, addMeal, deleteMeal, deleteMealItem, updateMealItem } from '../api';
 import { useEffect } from 'react';
@@ -28,6 +29,7 @@ export default function Home() {
   const [meals, setMeals] = useState([]);
   const [summary, setSummary] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [addMode, setAddMode] = useState('search');
   const [mealType, setMealType] = useState('breakfast');
   const [editingItem, setEditingItem] = useState(null);
   const [editAmount, setEditAmount] = useState('');
@@ -234,6 +236,20 @@ export default function Home() {
             </button>
           ) : (
             <div className="add-food-panel">
+              <div className="add-mode-toggle">
+                <button
+                  className={`mode-btn ${addMode === 'search' ? 'active' : ''}`}
+                  onClick={() => setAddMode('search')}
+                >
+                  <Search size={16} /> חיפוש
+                </button>
+                <button
+                  className={`mode-btn ${addMode === 'ai' ? 'active' : ''}`}
+                  onClick={() => setAddMode('ai')}
+                >
+                  <Sparkles size={16} /> AI חכם
+                </button>
+              </div>
               <div className="meal-type-selector">
                 {MEAL_TYPES.map(t => (
                   <button
@@ -245,10 +261,17 @@ export default function Home() {
                   </button>
                 ))}
               </div>
-              <FoodInput
-                onAdd={handleAddItem}
-                onCancel={() => setShowAdd(false)}
-              />
+              {addMode === 'search' ? (
+                <FoodInput
+                  onAdd={handleAddItem}
+                  onCancel={() => setShowAdd(false)}
+                />
+              ) : (
+                <AIFoodInput
+                  onAdd={handleAddItem}
+                  onCancel={() => setShowAdd(false)}
+                />
+              )}
             </div>
           )}
         </div>

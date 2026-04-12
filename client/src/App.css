@@ -298,6 +298,43 @@ body {
   margin-bottom: 16px;
 }
 
+.add-mode-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+
+.mode-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.mode-btn.active {
+  background: var(--bg-card);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.mode-btn:hover:not(.active) {
+  color: var(--text);
+}
+
 .meal-type-selector {
   display: flex;
   gap: 6px;
@@ -2208,4 +2245,107 @@ body {
 .btn-secondary:hover {
   background: var(--bg-hover);
   color: var(--text);
+}
+
+/* === AI Food Input === */
+.ai-food-input {
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.ai-text-input {
+  padding: 12px;
+}
+
+.ai-text-input textarea {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  direction: rtl;
+  margin-bottom: 8px;
+}
+
+.ai-text-input textarea:focus {
+  border-color: var(--accent);
+}
+
+.ai-text-input textarea::placeholder {
+  color: var(--text-secondary);
+}
+
+.ai-input-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ai-error {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: var(--red);
+  background: rgba(244, 67, 54, 0.1);
+  border-top: 1px solid var(--border);
+}
+
+.ai-results-title {
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ai-results-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.ai-result-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: opacity 0.2s;
+}
+
+.ai-result-item:last-child {
+  border-bottom: none;
+}
+
+.ai-result-item.deselected {
+  opacity: 0.35;
+}
+
+.ai-result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-result-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.ai-result-right .cal {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
 }
