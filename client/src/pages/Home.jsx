@@ -66,17 +66,50 @@ export default function Home() {
   const isToday = formatDate(date) === formatDate(new Date());
 
   const handleAddItem = async (item) => {
+    // Optimistic: close panel and show toast immediately
+    setShowAdd(false);
+    showToast('הפריט נוסף! ✅');
+
+    // Optimistic: add item to local state immediately
+    const tempId = Date.now();
+    const tempMeal = {
+      id: tempId,
+      meal_type: mealType,
+      created_at: new Date().toISOString(),
+      items: [{
+        id: tempId,
+        product_name: item.product_name,
+        brand: item.brand,
+        amount_g: item.amount_g,
+        serving_description: item.serving_description,
+        calories: item.calories,
+        protein_g: item.protein_g,
+        carbs_g: item.carbs_g,
+        fat_g: item.fat_g,
+      }]
+    };
+    setMeals(prev => [tempMeal, ...prev]);
+    setSummary(prev => prev ? {
+      ...prev,
+      total_calories: prev.total_calories + (item.calories || 0),
+      total_protein: prev.total_protein + (item.protein_g || 0),
+      total_carbs: prev.total_carbs + (item.carbs_g || 0),
+      total_fat: prev.total_fat + (item.fat_g || 0),
+      meal_count: prev.meal_count + 1,
+      item_count: prev.item_count + 1,
+    } : null);
+
     try {
       await addMeal({
         date: formatDate(date),
         meal_type: mealType,
         items: [item]
       });
-      setShowAdd(false);
-      showToast('הפריט נוסף! ✅');
+      // Sync real data in background
       loadData();
     } catch (err) {
       setError(err.message);
+      loadData(); // revert on error
     }
   };
 

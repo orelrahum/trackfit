@@ -1,10 +1,17 @@
 import { supabase } from '../lib/supabase';
 
+let cachedUserId = null;
+
 async function getUserId() {
+  if (cachedUserId) return cachedUserId;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('נדרשת התחברות');
-  return user.id;
+  cachedUserId = user.id;
+  return cachedUserId;
 }
+
+// Clear cache on auth state change
+supabase.auth.onAuthStateChange(() => { cachedUserId = null; });
 
 // Profile
 export const getProfile = async () => {
