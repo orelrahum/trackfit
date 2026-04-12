@@ -33,7 +33,7 @@ body {
 
 /* === App Layout === */
 .app {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   min-height: 100vh;
   display: flex;
@@ -101,6 +101,42 @@ body {
 .app-main {
   flex: 1;
   padding: 16px;
+}
+
+/* === Home Page Two-Column Layout === */
+.home-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.home-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.home-main {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .home-columns {
+    flex-direction: row-reverse;
+    align-items: flex-start;
+  }
+
+  .home-sidebar {
+    width: 340px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 80px;
+  }
+
+  .home-main {
+    flex: 1;
+  }
 }
 
 /* === Date Navigation === */
@@ -1088,7 +1124,7 @@ body {
 
 /* === Settings === */
 .settings-page {
-  max-width: 700px;
+  max-width: 800px;
 }
 
 .settings-page h2 {

@@ -181,35 +181,6 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Daily Summary */}
-      <DailySummary summary={summary} />
-
-      {/* Global Add Section */}
-      {!showAdd ? (
-        <button className="global-add-btn" onClick={() => setShowAdd(true)}>
-          <Plus size={20} />
-          <span>הוסף מה שאכלת</span>
-        </button>
-      ) : (
-        <div className="add-food-panel">
-          <div className="meal-type-selector">
-            {MEAL_TYPES.map(t => (
-              <button
-                key={t.value}
-                className={`meal-type-btn ${mealType === t.value ? 'active' : ''}`}
-                onClick={() => setMealType(t.value)}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-          <FoodInput
-            onAdd={handleAddItem}
-            onCancel={() => setShowAdd(false)}
-          />
-        </div>
-      )}
-
       {/* Error */}
       {error && (
         <div className="error-toast" onClick={() => setError(null)}>
@@ -224,95 +195,129 @@ export default function Home() {
         </div>
       )}
 
-      {/* 4 Meal Sections */}
-      <div className="meal-sections">
-        {MEAL_TYPES.map(({ value, full }) => {
-          const typeMeals = getMealsForType(value);
-          const typeItems = typeMeals.flatMap(m => m.items.map(i => ({ ...i, mealId: m.id })));
-          if (typeItems.length === 0) return null;
+      {/* Two-column layout */}
+      <div className="home-columns">
+        {/* Left: Summary + Add */}
+        <div className="home-sidebar">
+          <DailySummary summary={summary} />
 
-          const totalCal = typeItems.reduce((sum, i) => sum + (i.calories || 0), 0);
-
-          return (
-            <div key={value} className="meal-section">
-              <div className="meal-section-header">
-                <h3>{full}</h3>
-                <span className="section-cal">{Math.round(totalCal)} קק״ל</span>
-              </div>
-              <div className="meal-section-items">
-                {typeItems.map((item) => (
-                  <div key={item.id} className="meal-item">
-                    {item.photo_url ? (
-                      <img src={item.photo_url} alt="" className="meal-item-photo" />
-                    ) : (
-                      <div className="meal-item-photo-placeholder">🍽️</div>
-                    )}
-                    <div className="meal-item-info">
-                      <span className="meal-item-name">{item.product_name}</span>
-                      {item.brand && <span className="meal-item-brand">{item.brand}</span>}
-                      {editingItem === item.id ? (
-                        <div className="edit-amount-row">
-                          <input
-                            type="number"
-                            value={editAmount}
-                            onChange={(e) => setEditAmount(e.target.value)}
-                            min="1"
-                            dir="ltr"
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveEdit(item);
-                              if (e.key === 'Escape') cancelEdit();
-                            }}
-                          />
-                          <span>g</span>
-                          <button className="icon-btn tiny" onClick={() => saveEdit(item)} title="שמור">
-                            <Check size={14} />
-                          </button>
-                          <button className="icon-btn tiny" onClick={cancelEdit} title="ביטול">
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="meal-item-amount">
-                          {item.serving_description && `${item.serving_description} · `}
-                          {item.amount_g}g
-                        </span>
-                      )}
-                    </div>
-                    <div className="meal-item-nutrients">
-                      <span className="cal">{Math.round(item.calories)}</span>
-                      <div className="meal-item-actions">
-                        <button
-                          className="icon-btn tiny"
-                          onClick={() => startEdit(item)}
-                          title="ערוך כמות"
-                        >
-                          <Pencil size={12} />
-                        </button>
-                        <button
-                          className="icon-btn tiny danger"
-                          onClick={() => handleDeleteItem(item.id)}
-                          title="מחק פריט"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+          {!showAdd ? (
+            <button className="global-add-btn" onClick={() => setShowAdd(true)}>
+              <Plus size={20} />
+              <span>הוסף מה שאכלת</span>
+            </button>
+          ) : (
+            <div className="add-food-panel">
+              <div className="meal-type-selector">
+                {MEAL_TYPES.map(t => (
+                  <button
+                    key={t.value}
+                    className={`meal-type-btn ${mealType === t.value ? 'active' : ''}`}
+                    onClick={() => setMealType(t.value)}
+                  >
+                    {t.label}
+                  </button>
                 ))}
               </div>
+              <FoodInput
+                onAdd={handleAddItem}
+                onCancel={() => setShowAdd(false)}
+              />
             </div>
-          );
-        })}
-      </div>
-
-      {/* Empty state */}
-      {meals.length === 0 && !showAdd && (
-        <div className="empty-state">
-          <p>עדיין לא נרשמו ארוחות להיום</p>
-          <p>לחץ על ״הוסף מה שאכלת״ כדי להתחיל 🍽️</p>
+          )}
         </div>
-      )}
+
+        {/* Right: Meal Sections */}
+        <div className="home-main">
+          {meals.length === 0 && !showAdd && (
+            <div className="empty-state">
+              <p>עדיין לא נרשמו ארוחות להיום</p>
+              <p>לחץ על ״הוסף מה שאכלת״ כדי להתחיל 🍽️</p>
+            </div>
+          )}
+
+          <div className="meal-sections">
+            {MEAL_TYPES.map(({ value, full }) => {
+              const typeMeals = getMealsForType(value);
+              const typeItems = typeMeals.flatMap(m => m.items.map(i => ({ ...i, mealId: m.id })));
+              if (typeItems.length === 0) return null;
+
+              const totalCal = typeItems.reduce((sum, i) => sum + (i.calories || 0), 0);
+
+              return (
+                <div key={value} className="meal-section">
+                  <div className="meal-section-header">
+                    <h3>{full}</h3>
+                    <span className="section-cal">{Math.round(totalCal)} קק״ל</span>
+                  </div>
+                  <div className="meal-section-items">
+                    {typeItems.map((item) => (
+                      <div key={item.id} className="meal-item">
+                        {item.photo_url ? (
+                          <img src={item.photo_url} alt="" className="meal-item-photo" />
+                        ) : (
+                          <div className="meal-item-photo-placeholder">🍽️</div>
+                        )}
+                        <div className="meal-item-info">
+                          <span className="meal-item-name">{item.product_name}</span>
+                          {item.brand && <span className="meal-item-brand">{item.brand}</span>}
+                          {editingItem === item.id ? (
+                            <div className="edit-amount-row">
+                              <input
+                                type="number"
+                                value={editAmount}
+                                onChange={(e) => setEditAmount(e.target.value)}
+                                min="1"
+                                dir="ltr"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveEdit(item);
+                                  if (e.key === 'Escape') cancelEdit();
+                                }}
+                              />
+                              <span>g</span>
+                              <button className="icon-btn tiny" onClick={() => saveEdit(item)} title="שמור">
+                                <Check size={14} />
+                              </button>
+                              <button className="icon-btn tiny" onClick={cancelEdit} title="ביטול">
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="meal-item-amount">
+                              {item.serving_description && `${item.serving_description} · `}
+                              {item.amount_g}g
+                            </span>
+                          )}
+                        </div>
+                        <div className="meal-item-nutrients">
+                          <span className="cal">{Math.round(item.calories)}</span>
+                          <div className="meal-item-actions">
+                            <button
+                              className="icon-btn tiny"
+                              onClick={() => startEdit(item)}
+                              title="ערוך כמות"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <button
+                              className="icon-btn tiny danger"
+                              onClick={() => handleDeleteItem(item.id)}
+                              title="מחק פריט"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
