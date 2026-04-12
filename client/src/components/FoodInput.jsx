@@ -96,9 +96,19 @@ export default function FoodInput({ onAdd, onCancel }) {
       <div className="food-input-manual">
         <div className="selected-product">
           <div className="selected-header">
-            <div>
+            {selected.photo_url && (
+              <img src={selected.photo_url} alt="" className="selected-photo" />
+            )}
+            <div className="selected-info">
               <span className="selected-name">{selected.name}</span>
-              {selected.brand && <span className="selected-brand"> ({selected.brand})</span>}
+              {selected.brand && <span className="selected-brand">{selected.brand}</span>}
+              {selected.category?.length > 0 && (
+                <div className="selected-tags">
+                  {selected.category.map((c, i) => (
+                    <span key={i} className="tag">{c}</span>
+                  ))}
+                </div>
+              )}
             </div>
             <button className="icon-btn small" onClick={() => setSelected(null)} title="שנה מוצר">
               <X size={16} />
@@ -181,12 +191,27 @@ export default function FoodInput({ onAdd, onCancel }) {
         <div className="search-results">
           {results.map((p) => (
             <div key={`${p.type}-${p.id}`} className="search-result-item" onClick={() => selectProduct(p)}>
+              {p.photo_url ? (
+                <img src={p.photo_url} alt="" className="result-photo" />
+              ) : (
+                <div className="result-photo-placeholder">
+                  {p.type === 'recipe' ? '🍳' : '🥘'}
+                </div>
+              )}
               <div className="result-info">
                 <span className="result-name">{p.name}</span>
                 {p.brand && <span className="result-brand">{p.brand}</span>}
+                {p.category?.length > 0 && (
+                  <div className="result-tags">
+                    {p.category.slice(0, 3).map((c, i) => (
+                      <span key={i} className="tag tag-sm">{c}</span>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="result-cal">
-                {Math.round(p.nutrients_per_100g?.calories || 0)} קק״ל/100g
+                {Math.round(p.nutrients_per_100g?.calories || 0)}
+                <small> קק״ל</small>
               </div>
             </div>
           ))}

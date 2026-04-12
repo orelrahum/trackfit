@@ -166,20 +166,29 @@ export const deleteMealItem = async (id) => {
   return { message: 'הפריט נמחק' };
 };
 
-// Products (search foods + recipes)
+// Products (search foods + recipes with photos, categories, servings)
 export const searchProducts = async (q) => {
   const query = `%${q}%`;
   const [{ data: foods }, { data: recipes }] = await Promise.all([
-    supabase.from('foods').select('*').or(`name.ilike.${query},brand.ilike.${query}`).limit(20),
-    supabase.from('recipes').select('*').or(`name.ilike.${query},author.ilike.${query}`).limit(20),
+    supabase.from('foods')
+      .select('*, food_categories(category_id, categories(name)), food_servings(name, amount_g)')
+      .or(`name.ilike.${query},brand.ilike.${query}`)
+      .limit(20),
+    supabase.from('recipes')
+      .select('*, recipe_categories(category_id, categories(name))')
+      .or(`name.ilike.${query},author.ilike.${query}`)
+      .limit(20),
   ]);
 
   const mapFood = f => ({
     ...f, type: 'food',
+    category: (f.food_categories || []).map(c => c.categories?.name).filter(Boolean),
+    serving_sizes: f.food_servings || [],
     nutrients_per_100g: { calories: f.calories_per_100g, protein_g: f.protein_per_100g, carbs_g: f.carbs_per_100g, fat_g: f.fat_per_100g }
   });
   const mapRecipe = r => ({
     ...r, type: 'recipe', brand: r.author,
+    category: (r.recipe_categories || []).map(c => c.categories?.name).filter(Boolean),
     nutrients_per_100g: { calories: r.calories_per_100g, protein_g: r.protein_per_100g, carbs_g: r.carbs_per_100g, fat_g: r.fat_per_100g },
     serving_sizes: [{ name: 'מנה', amount_g: r.serving_weight_g || 300 }]
   });

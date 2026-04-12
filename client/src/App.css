@@ -218,6 +218,39 @@ body {
   margin-bottom: 16px;
 }
 
+/* Global add button */
+.global-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 16px;
+  background: var(--bg-card);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.global-add-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.add-food-panel {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
 .meal-type-selector {
   display: flex;
   gap: 6px;
@@ -661,7 +694,7 @@ body {
 
 .search-result-item {
   display: flex;
-  justify-content: space-between;
+  gap: 10px;
   align-items: center;
   padding: 10px 12px;
   cursor: pointer;
@@ -695,10 +728,17 @@ body {
 }
 
 .result-cal {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
+  font-size: 0.85rem;
+  color: var(--accent);
+  font-weight: 600;
   flex-shrink: 0;
-  margin-right: 8px;
+  text-align: left;
+}
+
+.result-cal small {
+  font-weight: 400;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
 }
 
 /* Selected product */
@@ -708,19 +748,84 @@ body {
 
 .selected-header {
   display: flex;
-  justify-content: space-between;
+  gap: 10px;
   align-items: flex-start;
   margin-bottom: 10px;
+}
+
+.selected-photo {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.selected-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .selected-name {
   font-weight: 600;
   font-size: 0.95rem;
+  display: block;
 }
 
 .selected-brand {
   color: var(--text-secondary);
   font-size: 0.85rem;
+  display: block;
+}
+
+.selected-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* Tags */
+.tag {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.tag-sm {
+  padding: 1px 6px;
+  font-size: 0.65rem;
+}
+
+/* Search result photos */
+.result-photo {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.result-photo-placeholder {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-hover);
+  border-radius: var(--radius-sm);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.result-tags {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  margin-top: 2px;
 }
 
 .serving-options {
