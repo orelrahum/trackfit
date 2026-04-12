@@ -244,18 +244,18 @@ async function buildProductCatalog() {
 }
 
 const AI_PROMPT = `אתה עוזר תזונה עבור אפליקציית Trackfit.
-המשתמש יתאר מה אכל בטקסט חופשי. זהה את המוצרים והתאם אותם לרשימת המוצרים שלנו.
+המשתמש יתאר מה אכל. התאם **רק** למוצרים מהרשימה למטה.
 
-חוקים:
-1. התאם רק למוצרים מהרשימה. אם אין התאמה מדויקת, בחר את הקרוב ביותר.
-2. אם אין התאמה כלל, השתמש ב-product_id: null.
-3. הערך כמות בגרמים לפי התיאור (כפית=5g, כף=15g, כוס=240g, פרוסה=25g, יחידה=לפי מוצר).
-4. ה-product_id כולל תחילית: F למזון, R למתכון.
+חוקים קריטיים:
+1. חובה להשתמש **רק** ב-product_id שקיים ברשימה (F=מזון, R=מתכון).
+2. אסור להמציא מוצרים. אם לא מצאת התאמה ברשימה - דלג על הפריט.
+3. הערך כמות בגרמים (כפית=5g, כף=15g, כוס=240g, פרוסה=25g).
+4. השתמש בשם המוצר בדיוק כפי שהוא ברשימה.
 
 החזר JSON בלבד (ללא markdown):
 {
   "items": [
-    { "product_id": "F123", "product_name": "שם", "brand": "", "amount_g": 30, "serving_description": "2 כפות" }
+    { "product_id": "F123", "product_name": "שם מהרשימה", "brand": "", "amount_g": 30, "serving_description": "2 כפות" }
   ]
 }`;
 
@@ -279,8 +279,8 @@ export const analyzeWithAI = async (text) => {
   if (!jsonMatch) throw new Error('AI לא הצליח לזהות מוצרים. נסה שוב.');
   const parsed = JSON.parse(jsonMatch[0]);
 
-  // Enrich with nutritional data
-  const enriched = await Promise.all((parsed.items || []).map(async (item) => {
+  // Enrich with nutritional data — only keep items that match real products
+  const enriched = (await Promise.all((parsed.items || []).map(async (item) => {
     const rawId = String(item.product_id || '');
     let food = null;
 
@@ -298,32 +298,25 @@ export const analyzeWithAI = async (text) => {
       }
     }
 
+    if (!food) return null; // Skip items not found in our DB
+
     const g = item.amount_g || 100;
-    if (food) {
-      const factor = g / 100;
-      return {
-        food_id: food.type === 'food' ? food.id : null,
-        recipe_id: food.type === 'recipe' ? food.id : null,
-        product_name: food.name,
-        brand: food.brand || '',
-        amount_g: g,
-        serving_description: item.serving_description || '',
-        calories: Math.round((food.calories_per_100g || 0) * factor),
-        protein_g: +((food.protein_per_100g || 0) * factor).toFixed(1),
-        carbs_g: +((food.carbs_per_100g || 0) * factor).toFixed(1),
-        fat_g: +((food.fat_per_100g || 0) * factor).toFixed(1),
-        photo_url: food.photo_url || null,
-      };
-    }
-
+    const factor = g / 100;
     return {
-      food_id: null, recipe_id: null,
-      product_name: item.product_name || 'מוצר לא מזוהה',
-      brand: item.brand || '', amount_g: g,
+      food_id: food.type === 'food' ? food.id : null,
+      recipe_id: food.type === 'recipe' ? food.id : null,
+      product_name: food.name,
+      brand: food.brand || '',
+      amount_g: g,
       serving_description: item.serving_description || '',
-      calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, photo_url: null,
+      calories: Math.round((food.calories_per_100g || 0) * factor),
+      protein_g: +((food.protein_per_100g || 0) * factor).toFixed(1),
+      carbs_g: +((food.carbs_per_100g || 0) * factor).toFixed(1),
+      fat_g: +((food.fat_per_100g || 0) * factor).toFixed(1),
+      photo_url: food.photo_url || null,
     };
-  }));
+  }))).filter(Boolean);
 
+  if (enriched.length === 0) throw new Error('לא נמצאו מוצרים תואמים במאגר. נסה לתאר אחרת.');
   return enriched;
 };
