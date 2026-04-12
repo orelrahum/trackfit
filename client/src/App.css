@@ -33,11 +33,18 @@ body {
 
 /* === App Layout === */
 .app {
+  width: 95%;
   max-width: 100%;
   margin: 0 auto;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .app {
+    width: 90%;
+  }
 }
 
 .app-header {
