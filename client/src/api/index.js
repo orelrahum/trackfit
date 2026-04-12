@@ -268,7 +268,7 @@ export const analyzeWithAI = async (text) => {
   const catalog = await buildProductCatalog();
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-04-17' });
 
   const result = await model.generateContent([
     { text: `${AI_PROMPT}\n\nרשימת המוצרים:\n${catalog}\n\n---\nהמשתמש אמר: ${text}` }
