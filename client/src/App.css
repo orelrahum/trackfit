@@ -547,7 +547,258 @@ body {
   justify-content: center;
 }
 
-/* === Meal List === */
+/* === Meal Sections === */
+.meal-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.meal-section {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.meal-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.meal-section-header h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.meal-section-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-cal {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.add-item-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-item-btn:hover {
+  background: var(--accent-hover);
+}
+
+.meal-section-items {
+  padding: 0;
+}
+
+.meal-section-input {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* === Manual Food Input === */
+.food-input-manual {
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.search-box .search-icon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.search-box input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 0.9rem;
+  outline: none;
+  font-family: inherit;
+}
+
+.search-box input::placeholder {
+  color: var(--text-secondary);
+}
+
+.search-status {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.search-results {
+  max-height: 240px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+
+.search-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border);
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background: var(--bg-hover);
+}
+
+.result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.result-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: block;
+}
+
+.result-brand {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: block;
+}
+
+.result-cal {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+/* Selected product */
+.selected-product {
+  padding: 12px;
+}
+
+.selected-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.selected-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.selected-brand {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.serving-options {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.serving-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.serving-btn.active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.amount-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.amount-row label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.amount-row input {
+  width: 80px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  outline: none;
+  text-align: center;
+}
+
+.amount-row input:focus {
+  border-color: var(--accent);
+}
+
+.nutrient-preview {
+  display: flex;
+  justify-content: space-around;
+  padding: 8px;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.nutrient-preview .protein { color: var(--green); }
+.nutrient-preview .carbs { color: var(--orange); }
+.nutrient-preview .fat { color: var(--red); }
+
+.add-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* === Meal List (legacy) === */
 .empty-state {
   text-align: center;
   padding: 40px 20px;

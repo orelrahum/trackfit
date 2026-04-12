@@ -39,30 +39,5 @@ export const addMeal = (data) => request('/meals', { method: 'POST', body: JSON.
 export const deleteMeal = (id) => request(`/meals/${id}`, { method: 'DELETE' });
 export const deleteMealItem = (id) => request(`/meals/item/${id}`, { method: 'DELETE' });
 
-// Analyze
-export async function analyzeFood(text, file) {
-  const formData = new FormData();
-  if (text) formData.append('text', text);
-  if (file) formData.append('file', file);
-  
-  const auth = await authHeaders();
-  const res = await fetch(`${API_BASE}/analyze`, {
-    method: 'POST',
-    headers: auth,
-    body: formData,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'Analysis failed');
-  }
-  return res.json();
-}
-
-export const getAIStatus = () => request('/analyze/status');
-
 // Products
 export const searchProducts = (q) => request(`/products/search?q=${encodeURIComponent(q)}`);
-
-// Settings
-export const getSetting = (key) => request(`/settings/${key}`);
-export const saveSetting = (key, value) => request('/settings', { method: 'POST', body: JSON.stringify({ key, value }) });
