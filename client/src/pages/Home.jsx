@@ -124,9 +124,24 @@ export default function Home() {
     }
   };
 
+  // Parse serving_description like "2 פרוסה" → { count: 2, unit: "פרוסה", gramsPerUnit }
+  const parseServing = (item) => {
+    if (!item.serving_description) return null;
+    const match = item.serving_description.match(/^([\d.]+)\s+(.+)$/);
+    if (!match) return null;
+    const count = parseFloat(match[1]);
+    if (!count || count <= 0) return null;
+    return { count, unit: match[2], gramsPerUnit: item.amount_g / count };
+  };
+
   const startEdit = (item) => {
     setEditingItem(item.id);
-    setEditAmount(String(item.amount_g));
+    const serving = parseServing(item);
+    if (serving) {
+      setEditAmount(String(serving.count));
+    } else {
+      setEditAmount(String(item.amount_g));
+    }
   };
 
   const cancelEdit = () => {
@@ -135,14 +150,25 @@ export default function Home() {
   };
 
   const saveEdit = async (item) => {
-    const newAmountG = parseFloat(editAmount);
-    if (!newAmountG || newAmountG <= 0) return;
+    const val = parseFloat(editAmount);
+    if (!val || val <= 0) return;
 
-    // Recalculate nutrients based on original per-gram ratio
+    const serving = parseServing(item);
+    let newAmountG, newServingDesc;
+
+    if (serving) {
+      newAmountG = Math.round(val * serving.gramsPerUnit);
+      newServingDesc = `${val} ${serving.unit}`;
+    } else {
+      newAmountG = val;
+      newServingDesc = item.serving_description || '';
+    }
+
     const origG = item.amount_g || 100;
     const factor = newAmountG / origG;
     const updates = {
       amount_g: newAmountG,
+      serving_description: newServingDesc,
       calories: Math.round((item.calories || 0) * factor),
       protein_g: +((item.protein_g || 0) * factor).toFixed(1),
       carbs_g: +((item.carbs_g || 0) * factor).toFixed(1),
@@ -267,7 +293,8 @@ export default function Home() {
                                 type="number"
                                 value={editAmount}
                                 onChange={(e) => setEditAmount(e.target.value)}
-                                min="1"
+                                min="0.5"
+                                step={parseServing(item) ? '0.5' : '1'}
                                 dir="ltr"
                                 autoFocus
                                 onKeyDown={(e) => {
@@ -275,7 +302,7 @@ export default function Home() {
                                   if (e.key === 'Escape') cancelEdit();
                                 }}
                               />
-                              <span>g</span>
+                              <span>{parseServing(item)?.unit || 'g'}</span>
                               <button className="icon-btn tiny" onClick={() => saveEdit(item)} title="שמור">
                                 <Check size={14} />
                               </button>
