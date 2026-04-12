@@ -33,7 +33,7 @@ body {
 
 /* === App Layout === */
 .app {
-  max-width: 600px;
+  max-width: 900px;
   margin: 0 auto;
   min-height: 100vh;
   display: flex;
@@ -982,7 +982,7 @@ body {
 
 .meal-item {
   display: flex;
-  justify-content: space-between;
+  gap: 10px;
   align-items: center;
   padding: 8px 16px;
   border-bottom: 1px solid var(--border);
@@ -990,6 +990,26 @@ body {
 
 .meal-item:last-child {
   border-bottom: none;
+}
+
+.meal-item-photo {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.meal-item-photo-placeholder {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-hover);
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  flex-shrink: 0;
 }
 
 .meal-item-info {
@@ -1016,8 +1036,9 @@ body {
 
 .meal-item-nutrients {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   flex-shrink: 0;
 }
 
@@ -1025,6 +1046,35 @@ body {
   font-weight: 700;
   font-size: 0.85rem;
   color: var(--accent);
+}
+
+.meal-item-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.edit-amount-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.edit-amount-row input {
+  width: 60px;
+  background: var(--bg-input);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  outline: none;
+  text-align: center;
+}
+
+.edit-amount-row span {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
 .meal-totals {
@@ -1038,7 +1088,7 @@ body {
 
 /* === Settings === */
 .settings-page {
-  max-width: 500px;
+  max-width: 700px;
 }
 
 .settings-page h2 {

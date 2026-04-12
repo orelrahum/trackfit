@@ -64,12 +64,18 @@ export const getMeals = async (date) => {
   const userId = await getUserId();
   const { data: meals, error } = await supabase
     .from('meals')
-    .select('*, meal_items(*)')
+    .select('*, meal_items(*, foods(photo_url), recipes(photo_url))')
     .eq('user_id', userId)
     .eq('date', date)
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
-  return (meals || []).map(m => ({ ...m, items: m.meal_items || [] }));
+  return (meals || []).map(m => ({
+    ...m,
+    items: (m.meal_items || []).map(item => ({
+      ...item,
+      photo_url: item.foods?.photo_url || item.recipes?.photo_url || null,
+    }))
+  }));
 };
 
 export const getMealSummary = async (date) => {
@@ -140,6 +146,15 @@ export const addMeal = async ({ date, meal_type, items }) => {
   if (itemsError) throw new Error(itemsError.message);
 
   return { id: meal.id, message: 'הארוחה נשמרה' };
+};
+
+export const updateMealItem = async (id, updates) => {
+  const { error } = await supabase
+    .from('meal_items')
+    .update(updates)
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+  return { message: 'הפריט עודכן' };
 };
 
 export const deleteMeal = async (id) => {

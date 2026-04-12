@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
-import { ChevronRight, ChevronLeft, Plus, Trash2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import FoodInput from '../components/FoodInput';
 import DailySummary from '../components/DailySummary';
-import { getMeals, getMealSummary, addMeal, deleteMeal, deleteMealItem } from '../api';
+import { getMeals, getMealSummary, addMeal, deleteMeal, deleteMealItem, updateMealItem } from '../api';
 import { useEffect } from 'react';
 
 const MEAL_TYPES = [
@@ -29,6 +29,8 @@ export default function Home() {
   const [summary, setSummary] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [mealType, setMealType] = useState('breakfast');
+  const [editingItem, setEditingItem] = useState(null);
+  const [editAmount, setEditAmount] = useState('');
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
 
@@ -122,6 +124,41 @@ export default function Home() {
     }
   };
 
+  const startEdit = (item) => {
+    setEditingItem(item.id);
+    setEditAmount(String(item.amount_g));
+  };
+
+  const cancelEdit = () => {
+    setEditingItem(null);
+    setEditAmount('');
+  };
+
+  const saveEdit = async (item) => {
+    const newAmountG = parseFloat(editAmount);
+    if (!newAmountG || newAmountG <= 0) return;
+
+    // Recalculate nutrients based on original per-gram ratio
+    const origG = item.amount_g || 100;
+    const factor = newAmountG / origG;
+    const updates = {
+      amount_g: newAmountG,
+      calories: Math.round((item.calories || 0) * factor),
+      protein_g: +((item.protein_g || 0) * factor).toFixed(1),
+      carbs_g: +((item.carbs_g || 0) * factor).toFixed(1),
+      fat_g: +((item.fat_g || 0) * factor).toFixed(1),
+    };
+
+    setEditingItem(null);
+    try {
+      await updateMealItem(item.id, updates);
+      showToast('הפריט עודכן ✅');
+      loadData();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const getMealsForType = (type) => meals.filter(m => m.meal_type === type);
 
   return (
@@ -205,23 +242,61 @@ export default function Home() {
               <div className="meal-section-items">
                 {typeItems.map((item) => (
                   <div key={item.id} className="meal-item">
+                    {item.photo_url ? (
+                      <img src={item.photo_url} alt="" className="meal-item-photo" />
+                    ) : (
+                      <div className="meal-item-photo-placeholder">🍽️</div>
+                    )}
                     <div className="meal-item-info">
                       <span className="meal-item-name">{item.product_name}</span>
                       {item.brand && <span className="meal-item-brand">{item.brand}</span>}
-                      <span className="meal-item-amount">
-                        {item.serving_description && `${item.serving_description} · `}
-                        {item.amount_g}g
-                      </span>
+                      {editingItem === item.id ? (
+                        <div className="edit-amount-row">
+                          <input
+                            type="number"
+                            value={editAmount}
+                            onChange={(e) => setEditAmount(e.target.value)}
+                            min="1"
+                            dir="ltr"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveEdit(item);
+                              if (e.key === 'Escape') cancelEdit();
+                            }}
+                          />
+                          <span>g</span>
+                          <button className="icon-btn tiny" onClick={() => saveEdit(item)} title="שמור">
+                            <Check size={14} />
+                          </button>
+                          <button className="icon-btn tiny" onClick={cancelEdit} title="ביטול">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="meal-item-amount">
+                          {item.serving_description && `${item.serving_description} · `}
+                          {item.amount_g}g
+                        </span>
+                      )}
                     </div>
                     <div className="meal-item-nutrients">
                       <span className="cal">{Math.round(item.calories)}</span>
-                      <button
-                        className="icon-btn tiny danger"
-                        onClick={() => handleDeleteItem(item.id)}
-                        title="מחק פריט"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+                      <div className="meal-item-actions">
+                        <button
+                          className="icon-btn tiny"
+                          onClick={() => startEdit(item)}
+                          title="ערוך כמות"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          className="icon-btn tiny danger"
+                          onClick={() => handleDeleteItem(item.id)}
+                          title="מחק פריט"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
