@@ -226,20 +226,19 @@ function getGeminiKey() {
 async function buildProductCatalog() {
   const [{ data: foods }, { data: recipes }] = await Promise.all([
     supabase.from('foods')
-      .select('id, name, brand, food_servings(name, amount_g)')
-      .limit(500),
+      .select('id, name, brand')
+      .limit(300),
     supabase.from('recipes')
-      .select('id, name, author, serving_weight_g')
-      .limit(200),
+      .select('id, name, author')
+      .limit(100),
   ]);
 
   const lines = [];
   for (const f of (foods || [])) {
-    const servings = (f.food_servings || []).map(s => `${s.name}=${s.amount_g}g`).join(', ');
-    lines.push(`[F${f.id}] ${f.name}${f.brand ? ` (${f.brand})` : ''}${servings ? ` | מנות: ${servings}` : ''}`);
+    lines.push(`F${f.id}|${f.name}${f.brand ? `|${f.brand}` : ''}`);
   }
   for (const r of (recipes || [])) {
-    lines.push(`[R${r.id}] ${r.name}${r.author ? ` (${r.author})` : ''} | מנות: מנה=${r.serving_weight_g || 300}g`);
+    lines.push(`R${r.id}|${r.name}${r.author ? `|${r.author}` : ''}`);
   }
   return lines.join('\n');
 }
@@ -269,7 +268,7 @@ export const analyzeWithAI = async (text) => {
   const catalog = await buildProductCatalog();
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
 
   const result = await model.generateContent([
     { text: `${AI_PROMPT}\n\nרשימת המוצרים:\n${catalog}\n\n---\nהמשתמש אמר: ${text}` }
