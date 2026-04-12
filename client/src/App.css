@@ -800,6 +800,25 @@ body {
   font-size: 0.65rem;
 }
 
+.tag-source {
+  font-weight: 600;
+}
+
+.tag-fuder {
+  background: rgba(255, 152, 0, 0.2);
+  color: #FF9800;
+}
+
+.tag-fooddictionary {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+}
+
+.tag-custom {
+  background: rgba(149, 117, 205, 0.2);
+  color: #9575CD;
+}
+
 /* Search result photos */
 .result-photo {
   width: 40px;
@@ -880,6 +899,12 @@ body {
 
 .amount-row input:focus {
   border-color: var(--accent);
+}
+
+.amount-grams {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .nutrient-preview {

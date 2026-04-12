@@ -6,7 +6,8 @@ export default function FoodInput({ onAdd, onCancel }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [amountG, setAmountG] = useState('');
+  const [servingCount, setServingCount] = useState('1');
+  const [customGrams, setCustomGrams] = useState('100');
   const [servingIdx, setServingIdx] = useState(-1);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef(null);
@@ -40,26 +41,36 @@ export default function FoodInput({ onAdd, onCancel }) {
     setSelected(product);
     setResults([]);
     setQuery('');
-    const defaultServing = product.serving_sizes?.[0];
-    if (defaultServing) {
+    if (product.serving_sizes?.length > 0) {
       setServingIdx(0);
-      setAmountG(String(defaultServing.amount_g));
+      setServingCount('1');
     } else {
       setServingIdx(-1);
-      setAmountG('100');
+      setCustomGrams('100');
     }
   };
 
   const handleServingChange = (idx) => {
     setServingIdx(idx);
-    if (idx >= 0 && selected?.serving_sizes?.[idx]) {
-      setAmountG(String(selected.serving_sizes[idx].amount_g));
+    if (idx >= 0) {
+      setServingCount('1');
+    } else {
+      setCustomGrams('100');
     }
   };
 
+  const getAmountG = () => {
+    if (servingIdx >= 0 && selected?.serving_sizes?.[servingIdx]) {
+      const count = parseFloat(servingCount);
+      if (!count || count <= 0) return 0;
+      return count * selected.serving_sizes[servingIdx].amount_g;
+    }
+    return parseFloat(customGrams) || 0;
+  };
+
   const calcNutrients = () => {
-    if (!selected || !amountG) return null;
-    const g = parseFloat(amountG);
+    if (!selected) return null;
+    const g = getAmountG();
     if (!g || g <= 0) return null;
     const n = selected.nutrients_per_100g;
     const factor = g / 100;
@@ -72,18 +83,20 @@ export default function FoodInput({ onAdd, onCancel }) {
   };
 
   const handleAdd = () => {
-    if (!selected || !amountG) return;
+    if (!selected) return;
     const nutrients = calcNutrients();
     if (!nutrients) return;
-    const servingDesc = servingIdx >= 0 && selected.serving_sizes?.[servingIdx]
-      ? selected.serving_sizes[servingIdx].name
+    const totalG = getAmountG();
+    const serving = servingIdx >= 0 && selected.serving_sizes?.[servingIdx];
+    const servingDesc = serving
+      ? `${servingCount} ${serving.name}`
       : '';
     onAdd?.({
       food_id: selected.type === 'food' ? selected.id : null,
       recipe_id: selected.type === 'recipe' ? selected.id : null,
       product_name: selected.name,
       brand: selected.brand || '',
-      amount_g: parseFloat(amountG),
+      amount_g: Math.round(totalG),
       serving_description: servingDesc,
       ...nutrients,
     });
@@ -102,13 +115,14 @@ export default function FoodInput({ onAdd, onCancel }) {
             <div className="selected-info">
               <span className="selected-name">{selected.name}</span>
               {selected.brand && <span className="selected-brand">{selected.brand}</span>}
-              {selected.category?.length > 0 && (
-                <div className="selected-tags">
-                  {selected.category.map((c, i) => (
-                    <span key={i} className="tag">{c}</span>
-                  ))}
-                </div>
-              )}
+              <div className="selected-tags">
+                {selected.source && (
+                  <span className={`tag tag-source tag-${selected.source}`}>{selected.source}</span>
+                )}
+                {selected.category?.map((c, i) => (
+                  <span key={i} className="tag">{c}</span>
+                ))}
+              </div>
             </div>
             <button className="icon-btn small" onClick={() => setSelected(null)} title="שנה מוצר">
               <X size={16} />
@@ -128,22 +142,39 @@ export default function FoodInput({ onAdd, onCancel }) {
               ))}
               <button
                 className={`serving-btn ${servingIdx === -1 ? 'active' : ''}`}
-                onClick={() => { setServingIdx(-1); setAmountG('100'); }}
+                onClick={() => handleServingChange(-1)}
               >
-                מותאם
+                גרם
               </button>
             </div>
           )}
 
           <div className="amount-row">
-            <label>כמות (גרם):</label>
-            <input
-              type="number"
-              value={amountG}
-              onChange={(e) => { setAmountG(e.target.value); setServingIdx(-1); }}
-              min="1"
-              dir="ltr"
-            />
+            {servingIdx >= 0 && selected.serving_sizes?.[servingIdx] ? (
+              <>
+                <label>כמות ({selected.serving_sizes[servingIdx].name}):</label>
+                <input
+                  type="number"
+                  value={servingCount}
+                  onChange={(e) => setServingCount(e.target.value)}
+                  min="0.5"
+                  step="0.5"
+                  dir="ltr"
+                />
+                <span className="amount-grams">{Math.round(getAmountG())}g</span>
+              </>
+            ) : (
+              <>
+                <label>כמות (גרם):</label>
+                <input
+                  type="number"
+                  value={customGrams}
+                  onChange={(e) => setCustomGrams(e.target.value)}
+                  min="1"
+                  dir="ltr"
+                />
+              </>
+            )}
           </div>
 
           {nutrients && (
@@ -201,13 +232,14 @@ export default function FoodInput({ onAdd, onCancel }) {
               <div className="result-info">
                 <span className="result-name">{p.name}</span>
                 {p.brand && <span className="result-brand">{p.brand}</span>}
-                {p.category?.length > 0 && (
-                  <div className="result-tags">
-                    {p.category.slice(0, 3).map((c, i) => (
-                      <span key={i} className="tag tag-sm">{c}</span>
-                    ))}
-                  </div>
-                )}
+                <div className="result-tags">
+                  {p.source && (
+                    <span className={`tag tag-sm tag-source tag-${p.source}`}>{p.source}</span>
+                  )}
+                  {p.category?.slice(0, 2).map((c, i) => (
+                    <span key={i} className="tag tag-sm">{c}</span>
+                  ))}
+                </div>
               </div>
               <div className="result-cal">
                 {Math.round(p.nutrients_per_100g?.calories || 0)}
