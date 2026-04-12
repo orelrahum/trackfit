@@ -219,13 +219,8 @@ export const searchProducts = async (q) => {
 };
 
 // AI Food Analysis
-let cachedApiKey = null;
-
-async function getGeminiKey() {
-  if (cachedApiKey) return cachedApiKey;
-  const { data } = await supabase.from('settings').select('value').eq('key', 'gemini_api_key').single();
-  cachedApiKey = data?.value || null;
-  return cachedApiKey;
+function getGeminiKey() {
+  return import.meta.env.VITE_GEMINI_API_KEY || null;
 }
 
 async function buildProductCatalog() {
@@ -268,7 +263,7 @@ const AI_PROMPT = `אתה עוזר תזונה עבור אפליקציית Trackf
 export const analyzeWithAI = async (text) => {
   const { GoogleGenerativeAI } = await import('@google/generative-ai');
 
-  const apiKey = await getGeminiKey();
+  const apiKey = getGeminiKey();
   if (!apiKey) throw new Error('מפתח AI לא מוגדר. פנה למנהל המערכת.');
 
   const catalog = await buildProductCatalog();
