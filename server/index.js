@@ -47,8 +47,9 @@ app.use('/api/settings', settingsRouter);
 
 // Health check
 app.get('/api/health', async (req, res) => {
-  const { count: productCount } = await supabase.from('products').select('id', { count: 'exact', head: true });
-  res.json({ status: 'ok', products: productCount });
+  const { count: foodCount } = await supabase.from('foods').select('id', { count: 'exact', head: true });
+  const { count: recipeCount } = await supabase.from('recipes').select('id', { count: 'exact', head: true });
+  res.json({ status: 'ok', foods: foodCount, recipes: recipeCount });
 });
 
 app.listen(PORT, () => {

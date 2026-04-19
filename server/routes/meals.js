@@ -82,7 +82,8 @@ router.post('/', async (req, res) => {
 
   const mealItems = items.map(item => ({
     meal_id: meal.id,
-    product_id: item.product_id || null,
+    food_id: item.food_id || null,
+    recipe_id: item.recipe_id || null,
     product_name: item.product_name,
     brand: item.brand || '',
     amount_g: item.amount_g,

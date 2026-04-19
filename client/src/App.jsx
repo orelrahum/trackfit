@@ -1,10 +1,9 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { Home as HomeIcon, Settings as SettingsIcon, Package, User, LogOut } from 'lucide-react';
+import { Home as HomeIcon, Settings as SettingsIcon, Package, LogOut } from 'lucide-react';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import Home from './pages/Home';
 import Settings from './pages/Settings';
 import Products from './pages/Products';
-import Profile from './pages/Profile';
 import ProfileSetup from './pages/ProfileSetup';
 import Login from './pages/Login';
 import './App.css';
@@ -50,10 +49,6 @@ function AppContent() {
             <Package size={18} />
             <span>מוצרים</span>
           </NavLink>
-          <NavLink to="/profile">
-            <User size={18} />
-            <span>פרופיל</span>
-          </NavLink>
           <NavLink to="/settings">
             <SettingsIcon size={18} />
             <span>הגדרות</span>
@@ -67,7 +62,6 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<Products />} />
-          <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>
@@ -76,8 +70,9 @@ function AppContent() {
 }
 
 function App() {
+  const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <AuthProvider>
         <AppContent />
       </AuthProvider>
