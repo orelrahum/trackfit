@@ -228,44 +228,70 @@ export default function Products() {
       const types = filterParams.type ? filterParams.type.split(',') : ['food', 'recipe'];
       const sources = filterParams.source ? filterParams.source.split(',') : null;
       let allItems = [];
+      let totalFoods = 0;
+      let totalRecipes = 0;
+
+      // When searching, load more results to allow proper relevance sorting
+      const fetchLimit = query ? 200 : PAGE_SIZE;
 
       if (types.includes('food')) {
         let q = supabase.from('foods').select('*, food_servings(name, amount_g)', { count: 'exact' });
         if (sources) q = q.in('source', sources);
         if (query) q = q.or(`name.ilike.%${query}%,brand.ilike.%${query}%`);
-        q = q.order('name').range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+        q = q.order('name');
+        if (!query) q = q.range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+        else q = q.limit(fetchLimit);
         const { data, count } = await q;
+        totalFoods = count || 0;
         allItems = allItems.concat((data || []).map(f => ({
           ...f, type: 'food',
           serving_sizes: f.food_servings || [],
           nutrients_per_100g: { calories: f.calories_per_100g, protein_g: f.protein_per_100g, carbs_g: f.carbs_per_100g, fat_g: f.fat_per_100g }
         })));
-        if (!types.includes('recipe')) setTotalCount(count || 0);
       }
 
       if (types.includes('recipe')) {
         let q = supabase.from('recipes').select('*', { count: 'exact' });
         if (sources) q = q.in('source', sources);
         if (query) q = q.or(`name.ilike.%${query}%,author.ilike.%${query}%`);
-        q = q.order('name').range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+        q = q.order('name');
+        if (!query) q = q.range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+        else q = q.limit(fetchLimit);
         const { data, count } = await q;
+        totalRecipes = count || 0;
         allItems = allItems.concat((data || []).map(r => ({
           ...r, type: 'recipe', brand: r.author,
           serving_sizes: [{ name: 'מנה', amount_g: r.serving_weight_g || 300 }],
           nutrients_per_100g: { calories: r.calories_per_100g, protein_g: r.protein_per_100g, carbs_g: r.carbs_per_100g, fat_g: r.fat_per_100g }
         })));
-        if (!types.includes('food')) setTotalCount(count || 0);
-        if (types.includes('food')) setTotalCount(prev => pageNum === 0 ? (prev + (count || 0)) : prev);
       }
 
-      allItems.sort((a, b) => a.name.localeCompare(b.name, 'he'));
+      setTotalCount(totalFoods + totalRecipes);
+
+      // Relevance sort when searching, alphabetical otherwise
+      if (query) {
+        const q = query.toLowerCase();
+        allItems.sort((a, b) => {
+          const aName = a.name.toLowerCase();
+          const bName = b.name.toLowerCase();
+          const aExact = aName === q;
+          const bExact = bName === q;
+          if (aExact !== bExact) return aExact ? -1 : 1;
+          const aStarts = aName.startsWith(q);
+          const bStarts = bName.startsWith(q);
+          if (aStarts !== bStarts) return aStarts ? -1 : 1;
+          return aName.localeCompare(bName, 'he');
+        });
+      } else {
+        allItems.sort((a, b) => a.name.localeCompare(b.name, 'he'));
+      }
 
       if (pageNum === 0) {
         setProducts(allItems);
       } else {
         setProducts(prev => [...prev, ...allItems]);
       }
-      setHasMore(allItems.length >= PAGE_SIZE);
+      setHasMore(!query && allItems.length >= PAGE_SIZE);
       setLoading(false);
     } catch (err) {
       console.error(err);
