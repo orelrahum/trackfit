@@ -14,6 +14,7 @@ import mealsRouter from './routes/meals.js';
 import analyzeRouter from './routes/analyze.js';
 import productsRouter from './routes/products.js';
 import settingsRouter from './routes/settings.js';
+import adminRouter from './routes/admin.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -44,6 +45,7 @@ app.use('/api/meals', mealsRouter);
 app.use('/api/analyze', analyzeRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/admin', adminRouter);
 
 // Health check
 app.get('/api/health', async (req, res) => {

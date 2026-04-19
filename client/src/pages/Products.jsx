@@ -305,6 +305,7 @@ export default function Products() {
                   <span className="product-macro carbs">פ: {product.nutrients_per_100g.carbs_g}g</span>
                   <span className="product-macro fat">ש: {product.nutrients_per_100g.fat_g}g</span>
                 </div>
+              </div>
             </div>
           );
         })}

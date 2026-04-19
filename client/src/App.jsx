@@ -1,12 +1,15 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { Home as HomeIcon, Settings as SettingsIcon, Package, LogOut } from 'lucide-react';
+import { Home as HomeIcon, Settings as SettingsIcon, Package, LogOut, Shield } from 'lucide-react';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import Home from './pages/Home';
 import Settings from './pages/Settings';
 import Products from './pages/Products';
+import Admin from './pages/Admin';
 import ProfileSetup from './pages/ProfileSetup';
 import Login from './pages/Login';
 import './App.css';
+
+const ADMIN_EMAIL = 'orelr180@gmail.com';
 
 function AppContent() {
   const { user, loading, logout } = useAuth();
@@ -53,6 +56,12 @@ function AppContent() {
             <SettingsIcon size={18} />
             <span>הגדרות</span>
           </NavLink>
+          {user.email === ADMIN_EMAIL && (
+            <NavLink to="/admin">
+              <Shield size={18} />
+              <span>ניהול</span>
+            </NavLink>
+          )}
           <button className="nav-logout" onClick={logout} title="התנתק">
             <LogOut size={18} />
           </button>
@@ -63,6 +72,9 @@ function AppContent() {
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<Products />} />
           <Route path="/settings" element={<Settings />} />
+          {user.email === ADMIN_EMAIL && (
+            <Route path="/admin" element={<Admin />} />
+          )}
         </Routes>
       </main>
     </div>
