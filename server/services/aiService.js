@@ -36,8 +36,8 @@ export async function ensureAI() {
 }
 
 // Build product catalog context - we chunk it to fit in context window
-function buildProductContext() {
-  const products = getAllProducts();
+async function buildProductContext() {
+  const products = await getAllProducts();
   // Send compact product list
   const lines = products.map(p => {
     const servings = (p.serving_sizes || [])
@@ -80,7 +80,7 @@ const SYSTEM_PROMPT = `אתה עוזר תזונה חכם עבור אפליקצי
 export async function analyzeFood(text = null, imageBase64 = null, audioBase64 = null) {
   ensureAI();
   
-  const productCatalog = buildProductContext();
+  const productCatalog = await buildProductContext();
   
   const parts = [];
   

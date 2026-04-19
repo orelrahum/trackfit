@@ -87,7 +87,7 @@ function ProductsTab() {
     try {
       const params = new URLSearchParams({ page: p, limit: PAGE_SIZE });
       if (q) params.set('q', q);
-      const data = await adminFetch(`/admin/products?${params}`);
+      const data = await adminFetch(`/admin/foods?${params}`);
       setProducts(data.products);
       setTotal(data.total);
     } catch (e) {
@@ -124,7 +124,7 @@ function ProductsTab() {
 
   const saveEdit = async () => {
     try {
-      await adminFetch(`/admin/products/${editingId}`, {
+      await adminFetch(`/admin/foods/${editingId}`, {
         method: 'PUT',
         body: JSON.stringify(editData),
       });
@@ -139,7 +139,7 @@ function ProductsTab() {
   const deleteProduct = async (id, name) => {
     if (!window.confirm(`למחוק את "${name}"?`)) return;
     try {
-      await adminFetch(`/admin/products/${id}`, { method: 'DELETE' });
+      await adminFetch(`/admin/foods/${id}`, { method: 'DELETE' });
       showToast('🗑️ המוצר נמחק');
       loadProducts(page, search);
     } catch (e) {

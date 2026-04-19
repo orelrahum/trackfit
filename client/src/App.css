@@ -2576,3 +2576,102 @@ body {
   font-size: 0.85rem;
   text-align: center;
 }
+
+/* === Admin in Product Modal === */
+.admin-modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.btn-admin-edit, .btn-admin-save {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.btn-admin-edit:hover, .btn-admin-save:hover {
+  background: var(--accent-hover);
+}
+
+.btn-admin-delete {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #F44336;
+  background: transparent;
+  color: #F44336;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.btn-admin-delete:hover {
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.btn-admin-cancel {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.admin-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-edit-form label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.admin-edit-form input {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  width: 60%;
+  outline: none;
+}
+
+.admin-edit-form input:focus {
+  border-color: var(--accent);
+}
+
+.admin-edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-admin-save:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

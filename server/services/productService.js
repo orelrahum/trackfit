@@ -48,18 +48,18 @@ export async function rebuildCache() {
   console.log(`Cache built: ${foodCache.length} foods, ${recipeCache.length} recipes`);
 }
 
-export function getAllProducts() {
-  ensureCache();
+export async function getAllProducts() {
+  await ensureCache();
   return [...(foodCache || []), ...(recipeCache || [])];
 }
 
-export function getAllFoods() {
-  ensureCache();
+export async function getAllFoods() {
+  await ensureCache();
   return foodCache || [];
 }
 
-export function getAllRecipes() {
-  ensureCache();
+export async function getAllRecipes() {
+  await ensureCache();
   return recipeCache || [];
 }
 

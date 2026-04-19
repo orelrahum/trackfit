@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Package, ChefHat, ShoppingBasket, X, ExternalLink } from 'lucide-react';
+import { Search, Package, ChefHat, ShoppingBasket, X, ExternalLink, Save, Trash2, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../components/AuthContext';
 
+const API_BASE = '/api';
+const ADMIN_EMAIL = 'orelr180@gmail.com';
 const FUDER_PLACEHOLDER = 'https://www.fuder.co.il/wp-content/uploads/2023/10/Frame-1000000952.png';
 
 function hasRealImage(product) {
@@ -25,11 +28,43 @@ const FILTER_OPTIONS = [
   { key: 'foodDictionary', label: '🟠 Food Dictionary', group: 'source' },
 ];
 
-function ProductModal({ product, onClose }) {
+function ProductModal({ product, onClose, isAdmin, onSave, onDelete }) {
+  const [editing, setEditing] = useState(false);
+  const [editData, setEditData] = useState({});
+  const [saving, setSaving] = useState(false);
+
   if (!product) return null;
   const sourceInfo = SOURCE_LABELS[product.source] || SOURCE_LABELS.fuder;
   const typeInfo = TYPE_LABELS[product.type] || TYPE_LABELS.food;
   const n = product.nutrients_per_100g;
+
+  const startEdit = () => {
+    setEditData({
+      name: product.name,
+      brand: product.brand || '',
+      calories_per_100g: n.calories,
+      protein_per_100g: n.protein_g,
+      carbs_per_100g: n.carbs_g,
+      fat_per_100g: n.fat_g,
+    });
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(product.id, editData);
+      setEditing(false);
+    } catch (e) {
+      alert('שגיאה: ' + e.message);
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`למחוק את "${product.name}"?`)) return;
+    await onDelete(product.id);
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -67,24 +102,39 @@ function ProductModal({ product, onClose }) {
         {/* Nutrition table */}
         <div className="modal-section">
           <h3>ערכים תזונתיים ל-100 גרם</h3>
-          <div className="nutrition-table">
-            <div className="nt-row nt-cal">
-              <span>קלוריות</span>
-              <span>{n.calories} קק״ל</span>
+          {editing ? (
+            <div className="admin-edit-form">
+              <label>שם <input value={editData.name} onChange={e => setEditData({ ...editData, name: e.target.value })} /></label>
+              <label>מותג <input value={editData.brand} onChange={e => setEditData({ ...editData, brand: e.target.value })} /></label>
+              <label>קלוריות <input type="number" value={editData.calories_per_100g} onChange={e => setEditData({ ...editData, calories_per_100g: +e.target.value })} /></label>
+              <label>חלבון <input type="number" step="0.1" value={editData.protein_per_100g} onChange={e => setEditData({ ...editData, protein_per_100g: +e.target.value })} /></label>
+              <label>פחמימות <input type="number" step="0.1" value={editData.carbs_per_100g} onChange={e => setEditData({ ...editData, carbs_per_100g: +e.target.value })} /></label>
+              <label>שומן <input type="number" step="0.1" value={editData.fat_per_100g} onChange={e => setEditData({ ...editData, fat_per_100g: +e.target.value })} /></label>
+              <div className="admin-edit-actions">
+                <button className="btn-admin-save" onClick={handleSave} disabled={saving}><Save size={14} /> {saving ? 'שומר...' : 'שמור'}</button>
+                <button className="btn-admin-cancel" onClick={() => setEditing(false)}>ביטול</button>
+              </div>
             </div>
-            <div className="nt-row">
-              <span style={{ color: '#4CAF50' }}>חלבון</span>
-              <span>{n.protein_g}g</span>
+          ) : (
+            <div className="nutrition-table">
+              <div className="nt-row nt-cal">
+                <span>קלוריות</span>
+                <span>{n.calories} קק״ל</span>
+              </div>
+              <div className="nt-row">
+                <span style={{ color: '#4CAF50' }}>חלבון</span>
+                <span>{n.protein_g}g</span>
+              </div>
+              <div className="nt-row">
+                <span style={{ color: '#FF9800' }}>פחמימות</span>
+                <span>{n.carbs_g}g</span>
+              </div>
+              <div className="nt-row">
+                <span style={{ color: '#F44336' }}>שומן</span>
+                <span>{n.fat_g}g</span>
+              </div>
             </div>
-            <div className="nt-row">
-              <span style={{ color: '#FF9800' }}>פחמימות</span>
-              <span>{n.carbs_g}g</span>
-            </div>
-            <div className="nt-row">
-              <span style={{ color: '#F44336' }}>שומן</span>
-              <span>{n.fat_g}g</span>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Serving sizes */}
@@ -119,12 +169,22 @@ function ProductModal({ product, onClose }) {
             <ExternalLink size={14} /> צפה במקור
           </a>
         )}
+
+        {/* Admin actions */}
+        {isAdmin && !editing && (
+          <div className="admin-modal-actions">
+            <button className="btn-admin-edit" onClick={startEdit}><Pencil size={14} /> ערוך מוצר</button>
+            <button className="btn-admin-delete" onClick={handleDelete}><Trash2 size={14} /> מחק</button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 export default function Products() {
+  const { user } = useAuth();
+  const isAdmin = user?.email === ADMIN_EMAIL;
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [activeFilters, setActiveFilters] = useState(new Set());
@@ -133,6 +193,7 @@ export default function Products() {
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [toast, setToast] = useState('');
   const loaderRef = useRef(null);
   const PAGE_SIZE = 50;
 
@@ -317,8 +378,41 @@ export default function Products() {
         <div className="products-end">הגעת לסוף הרשימה 🎉</div>
       )}
 
+      {toast && <div className="admin-toast" style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 200 }}>{toast}</div>}
+
       {/* Product Detail Modal */}
-      <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+      <ProductModal
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        isAdmin={isAdmin}
+        onSave={async (id, data) => {
+          const { data: { session } } = await supabase.auth.getSession();
+          const res = await fetch(`${API_BASE}/admin/foods/${id}`, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+          if (!res.ok) { const err = await res.json(); throw new Error(err.error); }
+          setSelectedProduct(null);
+          setToast('✅ המוצר עודכן');
+          setTimeout(() => setToast(''), 2500);
+          setProducts([]); setPage(0); setLoading(true);
+          loadProducts(0, search, filterParams);
+        }}
+        onDelete={async (id) => {
+          const { data: { session } } = await supabase.auth.getSession();
+          const res = await fetch(`${API_BASE}/admin/foods/${id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          if (!res.ok) { const err = await res.json(); throw new Error(err.error); }
+          setSelectedProduct(null);
+          setToast('🗑️ המוצר נמחק');
+          setTimeout(() => setToast(''), 2500);
+          setProducts([]); setPage(0); setLoading(true);
+          loadProducts(0, search, filterParams);
+        }}
+      />
     </div>
   );
 }

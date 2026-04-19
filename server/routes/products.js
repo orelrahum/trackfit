@@ -18,7 +18,7 @@ router.get('/categories', async (req, res) => {
 });
 
 // Catalog: paginated, sorted א-ת, with optional search
-router.get('/catalog', (req, res) => {
+router.get('/catalog', async (req, res) => {
   const { page = 0, limit = 50, q, source, type } = req.query;
   const pageNum = parseInt(page);
   const pageSize = parseInt(limit);
@@ -28,12 +28,12 @@ router.get('/catalog', (req, res) => {
   const sources = source ? source.split(',') : null;
 
   if (!types || types.includes('food')) {
-    let foods = getAllProducts().filter(p => p.type === 'food');
+    let foods = (await getAllProducts()).filter(p => p.type === 'food');
     if (sources) foods = foods.filter(p => sources.includes(p.source));
     items = items.concat(foods);
   }
   if (!types || types.includes('recipe')) {
-    let recipes = getAllProducts().filter(p => p.type === 'recipe');
+    let recipes = (await getAllProducts()).filter(p => p.type === 'recipe');
     if (sources) recipes = recipes.filter(p => sources.includes(p.source));
     items = items.concat(recipes);
   }

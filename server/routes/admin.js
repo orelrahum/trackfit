@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
-import { adminMiddleware, isAdmin } from '../middleware/admin.js';
+import { adminMiddleware } from '../middleware/admin.js';
 import { rebuildCache } from '../services/productService.js';
 import supabase from '../db/supabase.js';
 
@@ -16,35 +16,42 @@ router.get('/check', (req, res) => {
 
 // List all registered users with profiles
 router.get('/users', async (req, res) => {
-  const { data: { users }, error } = await supabase.auth.admin.listUsers();
-  if (error) return res.status(500).json({ error: error.message });
+  try {
+    const { data, error } = await supabase.auth.admin.listUsers();
+    if (error) return res.status(500).json({ error: error.message });
 
-  const { data: profiles } = await supabase.from('user_profiles').select('*');
-  const profileMap = {};
-  for (const p of (profiles || [])) {
-    profileMap[p.user_id] = p;
+    const users = data?.users || [];
+
+    const { data: profiles } = await supabase.from('user_profiles').select('*');
+    const profileMap = {};
+    for (const p of (profiles || [])) {
+      profileMap[p.user_id] = p;
+    }
+
+    const result = users.map(u => ({
+      id: u.id,
+      email: u.email,
+      name: profileMap[u.id]?.name || u.user_metadata?.full_name || '',
+      created_at: u.created_at,
+      last_sign_in_at: u.last_sign_in_at,
+      profile: profileMap[u.id] || null,
+    }));
+
+    res.json(result);
+  } catch (e) {
+    console.error('Admin users error:', e);
+    res.status(500).json({ error: e.message });
   }
-
-  const result = (users || []).map(u => ({
-    id: u.id,
-    email: u.email,
-    name: profileMap[u.id]?.name || u.user_metadata?.full_name || '',
-    created_at: u.created_at,
-    last_sign_in_at: u.last_sign_in_at,
-    profile: profileMap[u.id] || null,
-  }));
-
-  res.json(result);
 });
 
-// Get all products (for admin management)
-router.get('/products', async (req, res) => {
+// Get all foods (for admin management)
+router.get('/foods', async (req, res) => {
   const { page = 0, limit = 50, q } = req.query;
   const pageNum = parseInt(page);
   const pageSize = parseInt(limit);
 
   let query = supabase
-    .from('products')
+    .from('foods')
     .select('*', { count: 'exact' })
     .order('id', { ascending: true })
     .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1);
@@ -53,14 +60,14 @@ router.get('/products', async (req, res) => {
     query = query.or(`name.ilike.%${q}%,brand.ilike.%${q}%`);
   }
 
-  const { data: products, count, error } = await query;
+  const { data: foods, count, error } = await query;
   if (error) return res.status(500).json({ error: error.message });
 
-  res.json({ products: products || [], total: count || 0, page: pageNum, pageSize });
+  res.json({ products: foods || [], total: count || 0, page: pageNum, pageSize });
 });
 
-// Update a product
-router.put('/products/:id', async (req, res) => {
+// Update a food item
+router.put('/foods/:id', async (req, res) => {
   const { id } = req.params;
   const { name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g } = req.body;
 
@@ -73,7 +80,7 @@ router.put('/products/:id', async (req, res) => {
   if (fat_per_100g !== undefined) updates.fat_per_100g = fat_per_100g;
 
   const { data, error } = await supabase
-    .from('products')
+    .from('foods')
     .update(updates)
     .eq('id', parseInt(id))
     .select()
@@ -85,16 +92,15 @@ router.put('/products/:id', async (req, res) => {
   res.json(data);
 });
 
-// Delete a product
-router.delete('/products/:id', async (req, res) => {
+// Delete a food item
+router.delete('/foods/:id', async (req, res) => {
   const { id } = req.params;
-  const productId = parseInt(id);
+  const foodId = parseInt(id);
 
-  // Delete related data first
-  await supabase.from('product_servings').delete().eq('product_id', productId);
-  await supabase.from('product_categories').delete().eq('product_id', productId);
+  await supabase.from('food_servings').delete().eq('food_id', foodId);
+  await supabase.from('food_categories').delete().eq('food_id', foodId);
 
-  const { error } = await supabase.from('products').delete().eq('id', productId);
+  const { error } = await supabase.from('foods').delete().eq('id', foodId);
   if (error) return res.status(500).json({ error: error.message });
 
   await rebuildCache();
