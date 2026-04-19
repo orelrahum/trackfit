@@ -41,9 +41,22 @@ router.get('/catalog', (req, res) => {
       const searchable = `${p.name} ${p.brand || ''}`.toLowerCase();
       return searchable.includes(query);
     });
+
+    // Relevance sort: exact name → starts with → contains
+    products.sort((a, b) => {
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+      const aExact = aName === query;
+      const bExact = bName === query;
+      if (aExact !== bExact) return aExact ? -1 : 1;
+      const aStarts = aName.startsWith(query);
+      const bStarts = bName.startsWith(query);
+      if (aStarts !== bStarts) return aStarts ? -1 : 1;
+      return aName.localeCompare(bName, 'he');
+    });
   }
   
-  const sorted = [...products].sort((a, b) => a.name.localeCompare(b.name, 'he'));
+  const sorted = q ? products : [...products].sort((a, b) => a.name.localeCompare(b.name, 'he'));
   
   const start = pageNum * pageSize;
   const paged = sorted.slice(start, start + pageSize);

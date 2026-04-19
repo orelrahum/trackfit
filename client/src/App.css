@@ -862,16 +862,16 @@ body {
 .products-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .product-card {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px;
+  padding: 8px 10px;
   transition: all 0.2s;
 }
 
@@ -881,8 +881,8 @@ body {
 }
 
 .product-image {
-  width: 64px;
-  height: 64px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-sm);
   overflow: hidden;
   flex-shrink: 0;

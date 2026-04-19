@@ -280,14 +280,6 @@ export default function Products() {
                   <span className="product-macro carbs">פ: {product.nutrients_per_100g.carbs_g}g</span>
                   <span className="product-macro fat">ש: {product.nutrients_per_100g.fat_g}g</span>
                 </div>
-                {product.serving_sizes?.length > 0 && (
-                  <div className="product-servings">
-                    {product.serving_sizes.map((s, i) => (
-                      <span key={i} className="serving-tag">{s.name} = {s.amount_g}g</span>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           );
         })}
